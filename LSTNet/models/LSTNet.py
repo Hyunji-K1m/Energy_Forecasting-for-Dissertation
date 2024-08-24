@@ -5,7 +5,6 @@ import torch.nn.functional as F
 class Model(nn.Module):
     def __init__(self, args, data):
         super(Model, self).__init__()
-        # 디바이스 설정 (MPS가 가능한지 확인 후 설정)
         if torch.backends.mps.is_available():
             self.device = torch.device("mps")
             print("Using MPS device")
@@ -41,14 +40,11 @@ class Model(nn.Module):
             self.output = torch.sigmoid
         if args.output_fun == 'tanh':
             self.output = torch.tanh
-        
-        # 모델을 디바이스에 올리기
         self.to(self.device)
 
     def forward(self, x):
         batch_size = x.size(0)
-        
-        # 입력 텐서를 float32로 변환하고 디바이스로 이동
+
         x = x.float().to(self.device)
         
         # CNN
