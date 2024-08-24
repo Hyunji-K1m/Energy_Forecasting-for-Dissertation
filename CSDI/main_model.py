@@ -5,19 +5,19 @@ import torch.nn as nn
 from diff_models import diff_CSDI
 import yaml
 
-# 코랩에서 GPU를 사용할 수 있도록 device 설정
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("Using device:", device)
 
 def load_config():
-    with open('/content/drive/Othercomputers/My MacBook Air/Desktop/Dissertation/code/real code/CSDI_final/config/base_forecasting.yaml', 'r') as file:
+    with open('base_forecasting.yaml', 'r') as file:
         return yaml.safe_load(file)
 config = load_config()
 
 class CSDI_base(nn.Module):
     def __init__(self, target_dim, config, device=device):
         super().__init__()
-        self.device = device  # GPU or CPU로 설정
+        self.device = device 
         self.target_dim = target_dim
 
         self.num_steps = config['diffusion']["num_steps"]
