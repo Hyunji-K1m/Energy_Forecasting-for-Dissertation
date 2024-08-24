@@ -78,12 +78,12 @@ def plot(target, forecast, prediction_length, prediction_intervals=(50.0, 90.0),
 def inverse_transform_forecasts(forecasts, scaler):
     inverse_forecasts = []
     for forecast in forecasts:
-        if isinstance(forecast, SampleForecast):  # Forecast 객체인 경우
-            forecast_mean = forecast.mean  # 이미 계산된 예측 평균값
-            forecast_mean_inverse = scaler.inverse_transform(forecast_mean)  # 원본 스케일로 변환
+        if isinstance(forecast, SampleForecast): 
+            forecast_mean = forecast.mean  
+            forecast_mean_inverse = scaler.inverse_transform(forecast_mean)  
             inverse_forecasts.append(forecast_mean_inverse)
         elif isinstance(forecast, np.ndarray):
-            forecast_mean = np.mean(forecast, axis=0)  # numpy 배열의 평균 계산
+            forecast_mean = np.mean(forecast, axis=0)  
             forecast_mean_inverse = scaler.inverse_transform(forecast_mean)
             inverse_forecasts.append(forecast_mean_inverse)
         else:
@@ -93,12 +93,12 @@ def inverse_transform_forecasts(forecasts, scaler):
 def inverse_transform_targets(targets, scaler):
     inverse_targets = []
     for target in targets:
-        if isinstance(target, pd.DataFrame):  # pandas DataFrame인 경우
-            target_values = target.values  # DataFrame의 값을 추출
-            target_inverse = scaler.inverse_transform(target_values)  # 원본 스케일로 변환
+        if isinstance(target, pd.DataFrame): 
+            target_values = target.values 
+            target_inverse = scaler.inverse_transform(target_values) 
             inverse_targets.append(target_inverse)
         elif isinstance(target, np.ndarray):
-            target_inverse = scaler.inverse_transform(target)  # numpy 배열인 경우
+            target_inverse = scaler.inverse_transform(target) 
             inverse_targets.append(target_inverse)
         else:
             raise ValueError("Unsupported target type")
@@ -110,7 +110,7 @@ def inverse_transform_targets(targets, scaler):
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # print(f"Available datasets: {list(dataset_recipes.keys())}")
 
-file_path = '/Users/kimhyunji/Desktop/Dissertation/code/data/rea_final_data without seasonal.csv'
+file_path = 'data without seasonal.csv'
 dataset = pd.read_csv(file_path)
 dataset['start_date'] = pd.to_datetime(dataset['start_date'])
 dataset.set_index('start_date', inplace=True)
@@ -206,7 +206,7 @@ if config.train:
     train_output = estimator.train_model(dataset_train, num_workers=0)
     predictor = train_output.predictor
 
-    # Valid 데이터셋에 대한 평가
+
     forecast_it_valid, ts_it_valid = make_evaluation_predictions(
         dataset=dataset_valid,
         predictor=predictor,
@@ -226,8 +226,7 @@ if config.train:
     forecasts_valid = inverse_transform_forecasts(forecasts_valid, scaler)
     targets_valid = inverse_transform_targets(targets_valid, scaler)
     
-    #mase 수정부분
-    # 스케일 복구 후 성능 평가
+  
     mae_list_valid = []
     mase_list_valid = []
     mse_list_valid = []
@@ -241,7 +240,7 @@ if config.train:
         mae_list_valid.append(mae)
 
         naive_mae = np.mean(np.abs(np.diff(target)))
-        epsilon = 1e-10  # 아주 작은 상수로 0으로 나누는 오류 방지
+        epsilon = 1e-10  
         mase = mae / (naive_mae + epsilon)
         mase_list_valid.append(mase)
         #mse -> after RMSE 
@@ -256,7 +255,7 @@ if config.train:
     agg_rmse_valid = np.sqrt(np.mean(mse_list_valid))
     agg_rel_rmse_valid = np.mean(rel_rmse_list_valid)
 
-    #여기까지
+
     
     print("Validation Metrics:")
     print("sMAPE:", agg_metric_valid["sMAPE"])
@@ -268,7 +267,7 @@ if config.train:
 
 
     """
-    #여기까지
+
     evaluator_valid = MultivariateEvaluator(
         quantiles=(np.arange(20)/20.0)[1:],
         target_agg_funcs={'sum': np.sum}
@@ -284,7 +283,7 @@ else:
     transformation = estimator.create_transformation()
     predictor = estimator.create_predictor(transformation, trainnet, config.device)
 
-# Test 데이터셋에 대한 평가
+
 forecast_it_test, ts_it_test = make_evaluation_predictions(
     dataset=dataset_test,
     predictor=predictor,
@@ -303,8 +302,7 @@ agg_metric_test, item_metrics_test = evaluator_test(targets_test, forecasts_test
 forecasts_test = inverse_transform_forecasts(forecasts_test, scaler)
 targets_test = inverse_transform_targets(targets_test, scaler)
     
-    #mase 수정부분
-    # 스케일 복구 후 성능 평가
+
 mae_list_test = []
 mase_list_test = []
 mse_list_test = []
@@ -319,7 +317,7 @@ for target, forecast in zip(targets_test, forecasts_test):
     mae_list_test.append(mae)
 
     naive_mae = np.mean(np.abs(np.diff(target)))
-    epsilon = 1e-10  # 아주 작은 상수로 0으로 나누는 오류 방지
+    epsilon = 1e-10 
     mase = mae / (naive_mae + epsilon)
     mase_list_test.append(mase)
         #mse -> after RMSE 
@@ -339,7 +337,6 @@ agg_rmse_test = np.mean(rmse_list_test)  # 각 RMSE의 평균
 agg_rel_rmse_test = np.mean(rel_rmse_list_test) 
 
 
-#test부분만 변경
     
 print("Test Metrics:")
 print("sMAPE:", agg_metric_test["sMAPE"])
@@ -357,42 +354,3 @@ metrics = {
     "Relative RMSE (Test)": agg_rel_rmse_test
 }
 
-"""
-for target, forecast in zip(targets_test, forecasts_test):
-    forecast_mean = forecast.mean
-    if len(forecast_mean) != len(target):
-            min_len = min(len(forecast_mean), len(target))
-            forecast_mean = forecast_mean[:min_len]
-            target = target[:min_len]
-    mae = np.mean(np.abs(forecast.mean - target))
-    naive_mae = np.mean(np.abs(np.diff(target)))
-    epsilon = 1e-10  # 아주 작은 상수
-    mase = mae / (naive_mae + epsilon)
-    rmse_value = rmse(target, forecast_mean)
-    rel_rmse_value = relative_rmse(target, forecast_mean)
-
-    mae_list_test.append(mae)
-    mase_list_test.append(mase)
-    rmse_list_test.append(rmse_value)
-    rel_rmse_list_test.append(rel_rmse_value)
-
-agg_mase_test = np.mean(mase_list_test)
-agg_rmse_test = np.mean(rmse_list_test)
-agg_rel_rmse_test = np.mean(rel_rmse_list_test)
-print("MASE (Test):_re", agg_mase_test)
-#여기까지
-evaluator_test = MultivariateEvaluator(
-    quantiles=(np.arange(20)/20.0)[1:],
-    target_agg_funcs={'sum': np.sum}
-)
-
-agg_metric_test, item_metrics_test = evaluator_test(targets_test, forecasts_test, num_series=len(dataset_test))
-
-print("Test Metrics:")
-print("sMAPE:", agg_metric_test["sMAPE"])
-print("MASE (Test):", agg_mase_test)
-print("CRPS:", agg_metric_test["mean_wQuantileLoss"])
-print("CRPS-Sum:", agg_metric_test["m_sum_mean_wQuantileLoss"])
-print("RMSE (Test):", agg_rmse_test)
-print("Relative RMSE (Test):", agg_rel_rmse_test)
-"""
