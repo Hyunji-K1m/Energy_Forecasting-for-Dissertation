@@ -10,7 +10,7 @@ from tensorflow.keras.callbacks import EarlyStopping
 from tensorflow.keras.layers import Input, LSTM, Dense
 from tensorflow.keras.layers import Dropout
 
-data = pd.read_csv('/Users/kimhyunji/Desktop/Dissertation/code/data/rea_final_data without seasonal.csv')
+data = pd.read_csv(file_path)
 data['start_date'] = pd.to_datetime(data['start_date'])
 data.set_index('start_date', inplace=True)
 
