@@ -22,14 +22,14 @@ print(config)
 
 
 parser = argparse.ArgumentParser(description="CSDI")
-parser.add_argument("--config", type=str, default="/content/drive/Othercomputers/My MacBook Air/Desktop/Dissertation/code/real code/CSDI_final/config/base_forecasting.yaml")
+parser.add_argument("--config", type=str, default="base_forecasting.yaml")
 parser.add_argument("--datatype", type=str, default="electricity")
 parser.add_argument('--device', default='cuda', help='Device for computation (e.g., cuda)')
 parser.add_argument("--seed", type=int, default=1)
 parser.add_argument("--unconditional", action="store_true")
 parser.add_argument("--modelfolder", type=str, default="")
 parser.add_argument("--nsample", type=int, default=100)
-parser.add_argument("--data", type=str, default="/content/drive/Othercomputers/My MacBook Air/Desktop/Dissertation/code/real code/CSDI_final/electricity consumption_daily.csv", help="Path to the CSV file with the data")
+parser.add_argument("--data", type=str, default="electricity consumption_daily.csv", help="Path to the CSV file with the data")
 
 
 args = parser.parse_args()
