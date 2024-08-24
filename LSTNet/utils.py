@@ -8,33 +8,23 @@ def smape(actual, predicted):
     diff = torch.abs(actual - predicted) / denominator
     return 200 * torch.mean(diff)
 
-# MASE 계산 함수
 def mase(actual, predicted):
-    # actual 데이터의 1-차이 절대값의 평균을 naive forecast error로 사용
     n = actual.size(0)
-    d = torch.mean(torch.abs(actual[1:] - actual[:-1]))  # naive forecast error
+    d = torch.mean(torch.abs(actual[1:] - actual[:-1])) 
     epsilon = 1e-10
-    d = d + epsilon  # 0으로 나누는 것을 방지하기 위해 epsilon 추가
-    
-    # 예측값과 실제값의 절대 오차
+    d = d + epsilon  
     errors = torch.abs(actual - predicted)
-    
-    # MASE 계산
     return torch.mean(errors / d)
 
-# CRPS 계산 함수
 def crps(actual, predicted):
     return torch.mean((predicted - actual) ** 2)
 
-# CRPS_sum 계산 함수
 def crps_sum(actual, predicted):
     return torch.sum((predicted - actual) ** 2)
 
-# RMSE 계산 함수
 def rmse(actual, predicted):
     return torch.sqrt(torch.mean((predicted - actual) ** 2))
 
-# Relative RMSE 계산 함수
 def relative_rmse(actual, predicted, train_data):
     rmse_value = rmse(actual, predicted)
     rmse_naive = torch.sqrt(torch.mean((train_data[1:] - train_data[:-1]) ** 2))
@@ -42,9 +32,7 @@ def relative_rmse(actual, predicted, train_data):
 
 
 class Data_utility(object):
-    # train과 valid는 학습과 검증 세트 비율입니다. test = 1 - train - valid
     def __init__(self, file_name, train, valid, cuda, horizon, window, normalize = 2):
-        # Using MPS (Apple Silicon) if available, otherwise fallback to CPU
         if torch.backends.mps.is_available():
             self.device = torch.device("mps")
             print("Using MPS device")
@@ -54,7 +42,7 @@ class Data_utility(object):
         
         self.P = window
         self.h = horizon
-        data = pd.read_csv('/Users/kimhyunji/Desktop/Dissertation/code/data/rea_final_data without seasonal.csv')
+        data = pd.read_csv(file_path)
         self.rawdat = data.drop(columns=['start_date']).values
         self.dat = np.zeros(self.rawdat.shape, dtype=np.float32)
         self.n, self.m = self.dat.shape
@@ -76,8 +64,7 @@ class Data_utility(object):
             
         if normalize == 1:
             self.dat = (self.rawdat - np.min(self.rawdat, axis=0)) / (np.max(self.rawdat, axis=0) - np.min(self.rawdat, axis=0))
-            
-        # 각 row(센서)의 최대/최소 값으로 정규화
+
         if normalize == 2:
             for i in range(self.m):
                 self.scale[i] = np.max(np.abs(self.rawdat[:,i]))
