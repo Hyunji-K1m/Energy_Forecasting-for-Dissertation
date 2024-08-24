@@ -1,23 +1,23 @@
 train:
-  epochs: 50  # 에포크 수를 200에서 100으로 줄여 학습 시간을 단축
-  batch_size: 8  # 배치 사이즈를 16에서 8로 줄여 메모리 사용량 감소
-  lr: 1.0e-3  # 학습률은 그대로 유지
-  itr_per_epoch: 1.0e+7  # 이터레이션 수를 줄여서 한 에포크당 처리할 데이터의 양을 줄임
-  device: "mps"  # MPS 사용
+  epochs: 50  
+  batch_size: 8  
+  lr: 1.0e-3  
+  itr_per_epoch: 1.0e+7 
+  device: "mps"
 
 diffusion:
-  layers: 3  # 레이어 수를 4에서 3으로 줄여 모델의 복잡성을 감소
-  channels: 64  # 채널 수를 128에서 64로 줄여 계산량을 줄임
-  nheads: 4  # nheads 수를 8에서 4로 줄여 메모리 사용량 감소
-  diffusion_embedding_dim: 64  # 임베딩 차원을 줄여 계산량을 감소
-  beta_start: 0.0001  # 그대로 유지
-  beta_end: 0.5  # 그대로 유지
-  num_steps: 500  # 스텝 수를 줄여 계산량을 줄임
-  schedule: "quad"  # 그대로 유지
-  is_linear: False  # 그대로 유지
+  layers: 3  
+  channels: 64  
+  nheads: 4  
+  diffusion_embedding_dim: 64 
+  beta_start: 0.0001 
+  beta_end: 0.5 
+  num_steps: 500 
+  schedule: "quad" 
+  is_linear: False 
 
 model:
-  is_unconditional: 0  # 그대로 유지
-  timeemb: 320  # 임베딩 차원을 128에서 64로 줄여 계산량 감소
-  featureemb: 8  # feature embedding 차원을 16에서 8로 줄여 계산량 감소
-  target_strategy: "random"  # 그대로 유지
+  is_unconditional: 0 
+  timeemb: 320  
+  featureemb: 8 
+  target_strategy: "random"
