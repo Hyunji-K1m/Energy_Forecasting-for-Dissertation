@@ -7,12 +7,11 @@ import pickle
 import os
 import yaml
 
-# 코랩에서 GPU를 사용할 수 있도록 device 설정
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("Using device:", device)
 
 def load_config():
-    with open('/content/drive/Othercomputers/My MacBook Air/Desktop/Dissertation/code/real code/CSDI_final/config/base_forecasting.yaml', 'r') as file:
+    with open('base_forecasting.yaml', 'r') as file:
         return yaml.safe_load(file)
 config = load_config()
 
@@ -22,14 +21,14 @@ def train(
     train_loader,
     valid_loader=None,
     valid_epoch_interval=20,
-    foldername="/content/drive/Othercomputers/My MacBook Air/Desktop/Dissertation/code/real code/CSDI_final",
+    foldername="CSDI_final",
 ):
     model.to(device)
     optimizer = Adam(model.parameters(), lr=config["lr"], weight_decay=1e-6)
     if foldername != "/content/drive/Othercomputers/My MacBook Air/Desktop/Dissertation/code/real code/CSDI_final":
         output_path = foldername + "/model.pth"
     else:
-        output_path = os.path.join("/content/drive/Othercomputers/My MacBook Air/Desktop/Dissertation/code/real code/CSDI_final", "model.pth")
+        output_path = os.path.join("CSDI_final", "model.pth")
 
     p1 = int(0.75 * config["epochs"])
     p2 = int(0.9 * config["epochs"])
@@ -135,14 +134,14 @@ def calc_quantile_CRPS_sum(target, forecast, eval_points, mean_scaler, scaler):
         CRPS += q_loss / denom
     return CRPS.item() / len(quantiles)
 
-# sMAPE 계산 함수
+
 def smape(target, forecast, eval_points):
     numerator = torch.abs(forecast - target)
     denominator = torch.abs(forecast) + torch.abs(target)
     smape_val = 200 * torch.sum(numerator * eval_points / denominator) / torch.sum(eval_points)
     return smape_val
 
-# MASE 계산 함수
+
 def mase(target, forecast, eval_points, training_series):
     numerator = torch.sum(torch.abs((forecast - target) * eval_points))
     n = training_series.size(0)
