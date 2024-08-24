@@ -1,24 +1,24 @@
 train:
-  epochs: 1  # 에포크 수를 100에서 50으로 줄여 학습 시간을 단축
-  batch_size: 8  # 이 값은 그대로 두는 것이 좋습니다. 너무 작게 줄이면 학습 안정성이 떨어질 수 있음
-  lr: 1.0e-3  # 학습률은 그대로 유지
-  itr_per_epoch: 1.0e+7  # 이터레이션 수를 줄여서 한 에포크당 처리할 데이터의 양을 줄임
+  epochs: 1 
+  batch_size: 8  
+  lr: 1.0e-3  
+  itr_per_epoch: 1.0e+7  
   
 
 diffusion:
-  layers: 3  # 레이어 수를 4에서 2로 줄여 모델의 복잡성을 감소
-  channels: 128  # 채널 수를 128에서 64로 줄여 계산량을 줄임
-  nheads: 4  # nheads 수를 8에서 4로 줄여 메모리 사용량 감소
-  diffusion_embedding_dim: 64  # 임베딩 차원을 줄여 계산량을 감소
-  beta_start: 0.0001  # 그대로 유지
-  beta_end: 0.5  # 그대로 유지
-  num_steps: 70  # 스텝 수를 줄여 계산량을 줄임
-  schedule: "quad"  # 그대로 유지
-  s_linear: True  # 그대로 유지
+  layers: 3 
+  channels: 128  
+  nheads: 4  
+  diffusion_embedding_dim: 64  
+  beta_start: 0.0001  
+  beta_end: 0.5  
+  num_steps: 70  
+  schedule: "quad"  
+  s_linear: True  
 
 model:
-  is_unconditional: 0  # 그대로 유지
-  timeemb: 320  # 임베딩 차원을 128에서 64로 줄여 계산량 감소
-  featureemb: 8  # feature embedding 차원을 16에서 8로 줄여 계산량 감소
-  target_strategy: "test"  # 그대로 유지
-  num_sample_features: 320  # 그대로 유지 #side_dim64
+  is_unconditional: 0 
+  timeemb: 320  
+  featureemb: 8  
+  target_strategy: "test" 
+  num_sample_features: 320 
