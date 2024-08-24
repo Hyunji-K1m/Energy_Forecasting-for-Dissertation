@@ -6,12 +6,11 @@ import math
 from linear_attention_transformer import LinearAttentionTransformer
 import yaml
 
-# 코랩에서 GPU를 사용할 수 있도록 device 설정
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("Using device:", device)
 
 def load_config():
-    with open('/content/drive/Othercomputers/My MacBook Air/Desktop/Dissertation/code/real code/CSDI_final/config/base_forecasting.yaml', 'r') as file:
+    with open('base_forecasting.yaml', 'r') as file:
         config = yaml.safe_load(file)
     return config
 config = load_config()
@@ -28,7 +27,7 @@ def get_linear_trans(heads=8, layers=1, channels=64, localheads=0, localwindow=0
         dim=channels,
         depth=layers,
         heads=heads,
-        max_seq_len=395,  # max_seq_len을 395로 설정하여 L=395에 맞춤
+        max_seq_len=395,  
         n_local_attn_heads=localheads, 
         local_attn_window_size=localwindow,
     )
