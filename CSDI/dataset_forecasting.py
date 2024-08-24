@@ -7,12 +7,12 @@ from torch.utils.data import DataLoader, Dataset
 import yaml
 from torch.nn.utils.rnn import pad_sequence
 
-# 코랩에서 GPU를 사용할 수 있도록 device 설정
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("Using device:", device)
 
 def load_config():
-    with open('/content/drive/Othercomputers/My MacBook Air/Desktop/Dissertation/code/real code/CSDI_final/config/base_forecasting.yaml', 'r') as file:
+    with open('base_forecasting.yaml', 'r') as file:
         return yaml.safe_load(file)
 config = load_config()
 
@@ -71,13 +71,11 @@ class Forecasting_Dataset(Dataset):
         target_mask = self.mask_data[index:index+self.seq_length].copy()
         target_mask[-self.pred_length:] = 0.  # pred mask for test pattern strategy
 
-        # 날짜 정보를 timepoints에 사용
         timepoints = self.data_pivot.index[index:index+self.seq_length].values
         timepoints = timepoints.astype('datetime64[s]').astype(np.int64)  # datetime64 -> int64
         timepoints = np.expand_dims(timepoints, axis=-1)  # (seq_length, 1)
         timepoints = np.tile(timepoints, (1, self.main_data.shape[1]))  # (seq_length, features)
 
-            # B, K, L -> B, L, K로 변경
         observed_data = torch.tensor(self.main_data[index:index+self.seq_length], dtype=torch.float32).transpose(0, 1)  # -> (features, seq_length) -> (seq_length, features)
         observed_mask = torch.tensor(self.mask_data[index:index+self.seq_length], dtype=torch.float32).transpose(0, 1)
         gt_mask = torch.tensor(target_mask, dtype=torch.float32).transpose(0, 1)
