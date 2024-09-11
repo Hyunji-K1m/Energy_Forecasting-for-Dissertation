@@ -9,8 +9,19 @@ from tensorflow.keras.layers import LSTM, Dense
 from tensorflow.keras.callbacks import EarlyStopping
 from tensorflow.keras.layers import Input, LSTM, Dense
 from tensorflow.keras.layers import Dropout
+def replace_outliers_with_iqr(dataframe):
+    Q1 = dataframe.quantile(0.25)
+    Q3 = dataframe.quantile(0.75)
+    IQR = Q3 - Q1
+    lower_bound = Q1 - 1.5 * IQR
+    upper_bound = Q3 + 1.5 * IQR
 
-data = pd.read_csv(file_path)
+    dataframe = dataframe.mask(dataframe < lower_bound, Q1, axis=1)
+    dataframe = dataframe.mask(dataframe > upper_bound, Q3, axis=1)
+
+    return dataframe
+
+data = pd.read_csv('DATA.csv')
 data['start_date'] = pd.to_datetime(data['start_date'])
 data.set_index('start_date', inplace=True)
 
@@ -18,7 +29,7 @@ print(data)
 
 features = data.columns[:]
 print(features)
-
+#data = replace_outliers_with_iqr(data)
 data_values = data.values
 X = data_values[:-1, :]          
 target = data_values[1:, :320]   
@@ -53,12 +64,12 @@ def create_sequences(X_data, y_data, seq_length, number_of_steps_to_predict=1):
 
 
 train_seq_length = 120
-X_train_seq, y_train_seq = create_sequences(X_train, y_train, train_seq_length, number_of_steps_to_predict=14)
+X_train_seq, y_train_seq = create_sequences(X_train, y_train, train_seq_length, number_of_steps_to_predict=30)
 
 
 val_test_seq_length = 120
-X_val_seq, y_val_seq = create_sequences(X_val, y_val, val_test_seq_length, number_of_steps_to_predict=14)
-X_test_seq, y_test_seq = create_sequences(X_test, y_test, val_test_seq_length, number_of_steps_to_predict=14)
+X_val_seq, y_val_seq = create_sequences(X_val, y_val, val_test_seq_length, number_of_steps_to_predict=30)
+X_test_seq, y_test_seq = create_sequences(X_test, y_test, val_test_seq_length, number_of_steps_to_predict=30)
 
 
 print(f"X_train_seq shape: {X_train_seq.shape}")
@@ -73,7 +84,7 @@ model = Sequential()
 model.add(LSTM(128, input_shape=(X_train_seq.shape[1], X_train_seq.shape[2]), return_sequences=True))
 model.add(Dropout(0.2))
 model.add(LSTM(64))
-model.add(Dense(320 * 14))  
+model.add(Dense(320 * 30))  
 
 model.compile(optimizer='adam', loss='mean_squared_error')
 early_stopping = EarlyStopping(monitor='val_loss', patience=20, restore_best_weights=True)
@@ -81,7 +92,7 @@ early_stopping = EarlyStopping(monitor='val_loss', patience=20, restore_best_wei
 
 history = model.fit(X_train_seq, y_train_seq, epochs=50, batch_size=8, validation_data=(X_val_seq, y_val_seq), callbacks=[early_stopping])
 y_pred = model.predict(X_test_seq)
-y_pred = y_pred.reshape(-1, 14, 320)
+y_pred = y_pred.reshape(-1, 30, 320)
 
 def inverse_transform_sequences(scaler, sequences, original_dim):
     sequences_flat = sequences.reshape(-1, original_dim)
@@ -110,15 +121,15 @@ print(X_test_seq_original.shape)
 print("\nOriginal y_test_seq:")
 print(y_test_seq_original.shape)
 
-y_pred = y_pred.reshape(-1, 14, 320)
+y_pred = y_pred.reshape(-1, 30, 320)
 
 
 y_pred_original = inverse_transform_sequences(scaler_y, y_pred, 320)  
 y_test_seq_original = inverse_transform_sequences(scaler_y, y_test_seq, 320) 
 
-#y_test_seq_original_reshaped = y_test_seq_original.reshape(16, 14, 320) -> predict length=30
+y_test_seq_original_reshaped = y_test_seq_original.reshape(16, 30, 320) #-> predict length=30
 
-y_test_seq_original_reshaped = y_test_seq_original.reshape(32, 14, 320)
+#y_test_seq_original_reshaped = y_test_seq_original.reshape(32, 14, 320)
 
 
 print(f"y_pred_original shape: {y_pred_original.shape}")
@@ -140,19 +151,8 @@ def mase(y_true, y_pred):
 
 mase_value = mase(y_test_seq_original_reshaped, y_pred_original)
 print(f"MASE: {mase_value}")
-def crps(y_true, y_pred):
-    crps_values = [crps_ensemble(y_true[i], y_pred[i]) for i in range(len(y_true))]
-    return np.mean(crps_values)
 
-crps_value = crps(y_test_seq_original_reshaped, y_pred_original)
-print(f"CRPS: {crps_value}")
 
-def crps_sum(y_true, y_pred):
-    crps_values = [crps_ensemble(y_true[i], y_pred[i]) for i in range(len(y_true))]
-    return np.sum(crps_values)
-
-crps_sum_value = crps_sum(y_test_seq_original_reshaped, y_pred_original)
-print(f"CRPS Sum: {crps_sum_value}")
 
 from sklearn.metrics import mean_squared_error
 rmse_value = np.sqrt(mean_squared_error(y_test_seq_original_reshaped.reshape(-1, 320), 
