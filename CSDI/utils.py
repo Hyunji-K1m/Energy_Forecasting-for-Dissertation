@@ -7,13 +7,20 @@ import pickle
 import os
 import yaml
 
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("Using device:", device)
 
 def load_config():
-    with open('base_forecasting.yaml', 'r') as file:
+    with open('FILE.yaml', 'r') as file:
         return yaml.safe_load(file)
 config = load_config()
+
+def rmse(target, forecast, eval_points,scaler, mean_scaler):
+    target = target *(scaler - mean_scaler) + mean_scaler
+    forecast = forecast *(scaler - mean_scaler) + mean_scaler
+    mse = torch.sum(((forecast - target) ** 2) * eval_points) / torch.sum(eval_points)
+    return torch.sqrt(mse)
 
 def train(
     model,
@@ -21,11 +28,11 @@ def train(
     train_loader,
     valid_loader=None,
     valid_epoch_interval=20,
-    foldername="CSDI_final",
+    foldername="CSDI_final(file_path)",
 ):
     model.to(device)
     optimizer = Adam(model.parameters(), lr=config["lr"], weight_decay=1e-6)
-    if foldername != "/content/drive/Othercomputers/My MacBook Air/Desktop/Dissertation/code/real code/CSDI_final":
+    if foldername != "CSDI_final(file_path)":
         output_path = foldername + "/model.pth"
     else:
         output_path = os.path.join("CSDI_final", "model.pth")
@@ -135,12 +142,17 @@ def calc_quantile_CRPS_sum(target, forecast, eval_points, mean_scaler, scaler):
     return CRPS.item() / len(quantiles)
 
 
-def smape(target, forecast, eval_points):
+def smape(target, forecast, eval_points, scaler, mean_scaler):
+    target = target *(scaler - mean_scaler) + mean_scaler
+    forecast = forecast *(scaler - mean_scaler) + mean_scaler
     numerator = torch.abs(forecast - target)
     denominator = torch.abs(forecast) + torch.abs(target)
     smape_val = 200 * torch.sum(numerator * eval_points / denominator) / torch.sum(eval_points)
     return smape_val
 
+def samples_cal(target, eval_points, scaler, mean_scaler):
+    target = (target *(scaler - mean_scaler) + mean_scaler)*eval_points
+    return target
 
 def mase(target, forecast, eval_points, training_series):
     numerator = torch.sum(torch.abs((forecast - target) * eval_points))
@@ -149,13 +161,17 @@ def mase(target, forecast, eval_points, training_series):
     mase_val = numerator / (d / (n - 1))
     return mase_val
 
-def evaluate(model, test_loader, train_loader, nsample=100, scaler=1, mean_scaler=0, foldername=""):
+
+def evaluate(model, test_loader, train_loader, scaler, mean_scaler, nsample=100, foldername=""):
     model.to(device)
     with torch.no_grad():
         model.eval()
         smape_total = 0
         mase_total = 0
         evalpoints_total = 0
+        rmse_total = 0
+        rel_rmse_total = 0
+        samples_total=0
 
         all_target = []
         all_observed_point = []
@@ -167,7 +183,7 @@ def evaluate(model, test_loader, train_loader, nsample=100, scaler=1, mean_scale
         for batch_no, train_batch in enumerate(train_loader, start=1):
             print(train_batch.keys())
             for key, value in train_batch.items():
-                print(f"Key: {key}, Shape: {value.shape}")  # 각 키와 해당 값의 shape를 출력합니다.
+                print(f"Key: {key}, Shape: {value.shape}") 
                 break 
             train_batch = {k: v.to(device, dtype=torch.float32) for k, v in train_batch.items()}
             training_series.append(train_batch['observed_data'])
@@ -191,17 +207,23 @@ def evaluate(model, test_loader, train_loader, nsample=100, scaler=1, mean_scale
                 all_observed_time.append(observed_time)
                 all_generated_samples.append(samples)
 
-                smape_current = smape(c_target, samples_median.values, eval_points)
+                smape_current = smape(c_target, samples_median.values, eval_points, scaler, mean_scaler)
                 mase_current = mase(c_target, samples_median.values, eval_points, training_series.sum(-1))
+                rmse_current = rmse(c_target, samples_median.values, eval_points, scaler, mean_scaler)
+                samples_current = samples_cal(c_target,eval_points, scaler, mean_scaler )
 
                 smape_total += smape_current.item()
                 mase_total += mase_current.item()
+                rmse_total += rmse_current.item()
                 evalpoints_total += eval_points.sum().item()
-
+                samples_total += samples_current.sum().item() 
+                
                 it.set_postfix(
                     ordered_dict={
                         "sMAPE_total": smape_total / batch_no,
                         "MASE_total": mase_total / batch_no,
+                        "RMSE_total": rmse_total / batch_no,
+                        "Rel_RMSE_total": rel_rmse_total / batch_no,
                         "batch_no": batch_no,
                     },
                     refresh=True,
@@ -243,11 +265,13 @@ def evaluate(model, test_loader, train_loader, nsample=100, scaler=1, mean_scale
                     [
                         smape_total / evalpoints_total,
                         mase_total / evalpoints_total,
+                        rmse_total / evalpoints_total,
+                        rel_rmse_total / evalpoints_total,
                         CRPS,
                     ],
                     f,
                 )
                 print("sMAPE:", smape_total / evalpoints_total)
                 print("MASE:", mase_total / evalpoints_total)
-                print("CRPS:", CRPS)
-                print("CRPS_sum:", CRPS_sum)
+                print("RMSE:", rmse_total / evalpoints_total)
+                print("Relative RMSE:", (rmse_total/evalpoints_total) / (samples_total/evalpoints_total))
