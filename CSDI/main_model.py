@@ -5,19 +5,18 @@ import torch.nn as nn
 from diff_models import diff_CSDI
 import yaml
 
-
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("Using device:", device)
 
 def load_config():
-    with open('base_forecasting.yaml', 'r') as file:
+    with open('/content/drive/Othercomputers/My MacBook Air/Desktop/Dissertation/code/real code/CSDI_final/config/base_forecasting.yaml', 'r') as file:
         return yaml.safe_load(file)
 config = load_config()
 
 class CSDI_base(nn.Module):
     def __init__(self, target_dim, config, device=device):
         super().__init__()
-        self.device = device 
+        self.device = device  
         self.target_dim = target_dim
 
         self.num_steps = config['diffusion']["num_steps"]
@@ -31,7 +30,7 @@ class CSDI_base(nn.Module):
         self.alpha = np.cumprod(self.alpha_hat)
 
         self.alpha_torch = torch.tensor(self.alpha, dtype=torch.float32).unsqueeze(1).unsqueeze(1).to(self.device)
-        split_size = 320  # Example split size
+        split_size = 320  
 
         self.emb_time_dim = 320
         print(f"self.emb_time_dim: {self.emb_time_dim}")
@@ -53,7 +52,6 @@ class CSDI_base(nn.Module):
         input_dim = 1 if self.is_unconditional else 2
         self.diffmodel = diff_CSDI(config_diff, input_dim)
 
-        # Parameters for diffusion models
         self.num_steps = config_diff["num_steps"]
         self.beta = np.linspace(
             config_diff["beta_start"] ** 0.5, config_diff["beta_end"] ** 0.5, self.num_steps
