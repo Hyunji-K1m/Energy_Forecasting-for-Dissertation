@@ -7,12 +7,11 @@ from torch.utils.data import DataLoader, Dataset
 import yaml
 from torch.nn.utils.rnn import pad_sequence
 
-
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("Using device:", device)
 
 def load_config():
-    with open('base_forecasting.yaml', 'r') as file:
+    with open('/content/drive/Othercomputers/My MacBook Air/Desktop/Dissertation/code/real code/CSDI_final/config/base_forecasting.yaml', 'r') as file:
         return yaml.safe_load(file)
 config = load_config()
 
@@ -26,18 +25,16 @@ class Forecasting_Dataset(Dataset):
         data = pd.read_csv(datatype)
         data['start_date'] = pd.to_datetime(data['start_date'])
         data = data[~((data['start_date'].dt.month == 2) & (data['start_date'].dt.day == 29))]
-
-        # Pivot data to have customers as columns and dates as index
         self.data_pivot = data.pivot(index='start_date', columns='series_name', values='daily_series_value')
 
-        # Ensure we have exactly 320 features (series)
+
         assert self.data_pivot.shape[1] == 320, "Expected 320 series (features) in the dataset."
 
         scaler = MinMaxScaler()
         self.main_data = scaler.fit_transform(self.data_pivot.values)
         self.mean_data = scaler.data_min_
         self.std_data = scaler.data_max_
-
+        
         # Adjust to shape (time, features) -> (time, features, 1) -> (time, features)
         self.main_data = self.main_data[:, :, np.newaxis]  # -> shape: (time, features, 1)
         self.main_data = np.squeeze(self.main_data, axis=-1)  # -> shape: (time, features)
@@ -45,23 +42,23 @@ class Forecasting_Dataset(Dataset):
         # Mask data creation
         self.mask_data = np.ones_like(self.main_data)
         total_length = len(self.main_data)
-        self.test_length = int(0.15 * total_length)  # 15% of total length for test
-        self.valid_length = int(0.15 * total_length)  # 15% of total length for validation
+        self.test_length = self.pred_length*4 #int(0.15 * total_length)  
+        self.valid_length =self.pred_length*4 #int(0.15 * total_length)  
 
         if mode == 'train':
             start = 0
             end = total_length - self.seq_length - self.valid_length - self.test_length + 1
-            end = max(0, end)  # Ensure end is not negative
+            end = max(0, end) 
             self.use_index = np.arange(start, end, 1)
         elif mode == 'valid':
             start = total_length - self.seq_length - self.valid_length - self.test_length + self.pred_length
             end = total_length - self.seq_length - self.test_length + self.pred_length
-            end = min(total_length - self.seq_length, end)  # Ensure end does not exceed available data
+            end = min(total_length - self.seq_length, end)  
             self.use_index = np.arange(start, end, self.pred_length)
         elif mode == 'test':
             start = total_length - self.seq_length - self.test_length + self.pred_length
             end = total_length - self.seq_length + self.pred_length
-            end = min(total_length - self.seq_length, end)  # Ensure end does not exceed available data
+            end = min(total_length - self.seq_length, end)  
             self.use_index = np.arange(start, end, self.pred_length)
 
 
@@ -76,6 +73,7 @@ class Forecasting_Dataset(Dataset):
         timepoints = np.expand_dims(timepoints, axis=-1)  # (seq_length, 1)
         timepoints = np.tile(timepoints, (1, self.main_data.shape[1]))  # (seq_length, features)
 
+            # B, K, L -> B, L, K
         observed_data = torch.tensor(self.main_data[index:index+self.seq_length], dtype=torch.float32).transpose(0, 1)  # -> (features, seq_length) -> (seq_length, features)
         observed_mask = torch.tensor(self.mask_data[index:index+self.seq_length], dtype=torch.float32).transpose(0, 1)
         gt_mask = torch.tensor(target_mask, dtype=torch.float32).transpose(0, 1)
@@ -111,7 +109,6 @@ def get_dataloader(datatype,device,batch_size=8):
     test_loader = DataLoader(
         test_dataset, batch_size=batch_size, shuffle=0)
     
-    # GPU로 보내기 위한 처리 추가
     scaler = torch.from_numpy(dataset.std_data.astype(np.float32)).to(device)
     mean_scaler = torch.from_numpy(dataset.mean_data.astype(np.float32)).to(device)
 
